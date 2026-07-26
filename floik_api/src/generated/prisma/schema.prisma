@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String          @id @default(cuid())
+  xboxId         String?         @unique
+  username       String
+  email          String?         @unique
+  passwordHash   String?
+  authProvider   String          @default("MICROSOFT")
+  role           String          @default("USER")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  profile        Profile?
+  submissions    Submission[]
+  notifications  Notification[]
+  userRoles      UserRole[]
+  forumPosts     ForumPost[]
+  forumComments  ForumComment[]
+  forumReactions ForumReaction[]
+}
+
+model PortalSettings {
+  id                 String   @id @default("singleton")
+  portalType         String   @default("MINECRAFT")
+  allowEmailAuth     Boolean  @default(false)
+  allowGoogleAuth    Boolean  @default(false)
+  allowMicrosoftAuth Boolean  @default(true)
+  siteName           String   @default("Floik")
+  forumEnabled       Boolean  @default(true)
+  forumPostingRole   String   @default("USER")
+  updatedAt          DateTime @updatedAt
+}
+
+model Role {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  color       String?    @default("text-primary")
+  permissions Json       @default("[]")
+  position    Int        @default(0)
+  isDefault   Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  users       UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+}
+
+model Profile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  displayName    String?
+  bio            String?
+  profilePicture String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   @default("INFO")
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Submission {
+  id      String @id @default(cuid())
+  userId  String
+  formId  String
+  content Json
+
+  status     SubmissionStatus @default(PENDING)
+  reviewNote String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  user       User             @relation(fields: [userId], references: [id])
+  form       Form             @relation(fields: [formId], references: [id])
+}
+
+model Form {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  isActive    Boolean      @default(true)
+  icon        String?
+  color       String?
+  fields      Json
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  submissions Submission[]
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ForumPost {
+  id        String          @id @default(cuid())
+  title     String
+  content   Json
+  authorId  String
+  author    User            @relation(fields: [authorId], references: [id])
+  pinned    Boolean         @default(false)
+  locked    Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  comments  ForumComment[]
+  reactions ForumReaction[]
+
+  @@index([createdAt])
+}
+
+model ForumComment {
+  id        String          @id @default(cuid())
+  content   Json
+  authorId  String
+  author    User            @relation(fields: [authorId], references: [id])
+  postId    String
+  post      ForumPost       @relation(fields: [postId], references: [id])
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  reactions ForumReaction[]
+
+  @@index([postId])
+}
+
+model ForumReaction {
+  id        String        @id @default(cuid())
+  emoji     String
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  postId    String?
+  post      ForumPost?    @relation(fields: [postId], references: [id])
+  commentId String?
+  comment   ForumComment? @relation(fields: [commentId], references: [id])
+  createdAt DateTime      @default(now())
+
+  @@unique([emoji, userId, postId])
+  @@unique([emoji, userId, commentId])
+  @@index([postId])
+  @@index([commentId])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  type      String   @default("GENERAL")
+  link      String?
+  linkText  String?
+  gradient  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

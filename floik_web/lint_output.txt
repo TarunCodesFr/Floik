@@ -1,0 +1,1 @@
+Invalid project directory provided, no such directory: /home/taruncodes/Documents/Startups/botastudio/fe/lint
